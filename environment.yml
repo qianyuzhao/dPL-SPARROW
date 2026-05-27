@@ -1,0 +1,30 @@
+name: dpl-sparrow
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.9
+  - pip
+  # Core scientific computing
+  - numpy>=1.24
+  - pandas>=2.0
+  - scipy>=1.10
+  # Deep learning (GPU build recommended; swap for cpu-only if needed)
+  - pytorch>=1.13
+  - torchvision
+  - pip:
+    # Machine learning utilities
+    - scikit-learn>=1.3
+    # SHAP model explainability
+    - shap>=0.44
+    # Geospatial (needed for spatial map notebooks only)
+    - geopandas>=0.14
+    - shapely>=2.0
+    # Visualisation
+    - matplotlib>=3.7
+    - seaborn>=0.12
+    # Jupyter
+    - jupyter
+    - notebook
+    - ipykernel
