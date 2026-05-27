@@ -1,0 +1,22 @@
+# Data and outputs — do not commit
+data/
+outputs/
+*.csv
+*.pth
+*.pt
+*.pkl
+*.npy
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Environment
+.env
