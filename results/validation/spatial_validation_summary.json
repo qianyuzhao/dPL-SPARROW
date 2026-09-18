@@ -1,0 +1,22 @@
+{
+  "validation_scheme": "spatial_5_fold",
+  "candidate_id": "lr1em3_wd2em3",
+  "learning_rate": 0.001,
+  "weight_decay": 0.002,
+  "seed": 42,
+  "epochs": 200,
+  "scaler_fit_domain": "all HUC-12 reach-year covariates",
+  "held_out_information": "validation-site observed loads",
+  "selected_checkpoint": {
+    "epoch": 110,
+    "mean_training_log_mse": 0.326428,
+    "sd_training_log_mse": 0.013814,
+    "mean_validation_log_mse": 0.444375,
+    "sd_validation_log_mse": 0.106577,
+    "mean_training_log_r2": 0.913582,
+    "sd_training_log_r2": 0.005565,
+    "mean_validation_log_r2": 0.876864,
+    "sd_validation_log_r2": 0.028503
+  },
+  "source": "completed bnf_source_qavg_more_L2 weight-decay=2e-3 spatial run"
+}

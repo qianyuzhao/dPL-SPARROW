@@ -1,149 +1,124 @@
-# dPL-SPARROW: Differentiable Parameter Learning for SPARROW Nitrogen Load Modeling
+# dPL-SPARROW with G-TREND-N
 
-This repository contains the code for training and evaluating the **dPL-SPARROW** model, which combines the physically-based SPARROW (SPAtially Referenced Regressions On Watershed attributes) stream load model with neural networks (*ParamGenerators*) that learn spatially varying parameters from landscape attributes.
+This repository contains the reproducible code and figure-source data for the
+G-TREND-N version of **dPL-SPARROW** (Differentiable Parameter Learning for
+SPARROW). The model combines neural parameter generators with physically based
+SPARROW routing to estimate annual total nitrogen loads in the Upper Mississippi
+River Basin at HUC-12 resolution for 2001–2020.
 
-The model is applied to the **Upper Mississippi River Basin (UMRB)** at the HUC-12 scale to simulate annual total nitrogen (TN) loads (2001–2020), attribute loads to N-budget components, and explain parameter variability with SHAP values.
+## Repository contents
 
----
-
-## Repository structure
-
-```
-├── sparrow/
-│   ├── model.py          SPARROW routing module and ParamGenerator MLP
-│   └── utils.py          hydseq, gpu_align, r2_torch, r2_logspace_torch, setup_seed
-│
-├── 01_data_preparation.ipynb      Load SPARROW input + TREND-N data, remap nodes, compute HYDSEQ
-├── 02_train_dPL_SPARROW.ipynb     Train dPL-SPARROW on the full 20-year dataset
-├── 03_spatial_validation.ipynb    5-fold spatial cross-validation
-├── 04_temporal_validation.ipynb   5-fold temporal cross-validation
-├── 05_scenario_attribution.ipynb  N-budget component attribution (proportional apportionment)
-├── 06_shap_analysis.ipynb         DeepSHAP analysis of learned SPARROW parameters
-│
-├── environment.yml                Conda environment specification
-└── README.md
+```text
+01_data_preparation.ipynb       merge SPARROW and G-TREND-N inputs
+02_train_dPL_SPARROW.ipynb      train the full 20-year model
+03_spatial_validation.ipynb     five-fold spatial validation
+04_temporal_validation.ipynb    five-fold temporal validation
+05_scenario_attribution.ipynb   early/late-period counterfactual scenarios
+06_shap_analysis.ipynb          SHAP analysis of learned parameters
+sparrow/                        model and routing utilities
+scripts/generate_publication_data.py
+data/publication/               CSV data underlying the manuscript figures
+results/validation/             completed validation summaries
+environment.yml
 ```
 
----
+## Input data
 
-## Required data
+Notebook 01 expects two input tables and five spatial-fold files. Paths are set
+in its first code cell.
 
-### 1. SPARROW input table
+### SPARROW reach-year table
 
-One row per **HUC-12 reach × year**.  Set `sparrow_input_path` in notebook 01 to point to this file.  Required columns:
+`data/sparrow_input.csv` has one row per HUC-12 reach and year. Required groups
+include network fields (`waterid`, `fnode`, `tnode`, `rchtype`, `headflag`,
+`frac`, `iftran`), observed load (`depvar`), routing fields (`strmloss`,
+`iresload`), area and hydrology (`demiarea`, `slope`, `meanq`), and the nine
+parameter-generator features (`PPT30MEAN`, `tiles_perc`, `soil_CLAYAVE`,
+`meanTemp`, `CRP_percent`, `no_till`, `cover_crop_percent`, `forest_percent`,
+`wetlands_percent`).
 
-| Column group | Columns | Description |
-|---|---|---|
-| Network topology | `waterid`, `fnode`, `tnode`, `rchtype`, `headflag`, `frac`, `iftran` | Stream network connectivity |
-| Observation | `depvar` | Annual TN load at gauging stations (kg/yr); 0 = ungauged |
-| Stream / reservoir | `strmloss`, `iresload` | In-stream decay and reservoir retention variables |
-| Hydrology / terrain | `slope`, `meanq`, `demiarea` | Per-reach physical attributes |
-| Climate | `PPT`, `meanTemp` | Annual total precipitation and mean air temperature |
-| Soil / land use | `tiles_perc`, `soil_CLAYAVE`, `CRP_percent`, `no_till`, `cover_crop_percent`, `forest_percent`, `wetlands_percent` | Landscape controls on N export |
-| Year | `Year` | Calendar year (integer) |
+### G-TREND-N table
 
-### 2. TREND-N nitrogen surplus data
+`data/gtrendn_surplus_1930_2017.csv` has one row per HUC-12 and year. The model
+uses `Agriculture_Fertilizer`, `Domestic_Fertilizer`,
+`Atmospheric_Oxidized`, `Atmospheric_Reduced`, `Agriculture_Fixation`, `Human`,
+`Lvst_Sum`, and `Agriculture_Uptake`. It calculates:
 
-Annual N-budget variables from the TREND-N model, one row per HUC-12 reach × year.  Set `trendn_path` in notebook 01 to point to this file.
+```text
+N surplus = fertilizer + deposition + fixation + human + livestock
+            - agricultural uptake
+total N surplus (kg/yr) = N surplus (kg/ha/yr) × catchment area (ha)
+```
 
-Required columns: `waterid`, `Year`, `NSurplus` (kg N ha⁻¹ yr⁻¹), plus the N input and uptake components used for scenario attribution: `Atmospheric_Oxidized`, `Atmospheric_Reduced`, `Fertilizer_Agriculture`, `Fertilizer_NonAgriculture`, `Fix_Cropland`, `Fix_Pasture`, `Human`, livestock columns (`Lvst_BeefCow` … `Lvst_Turkeys`), `CropUptake_Cropland`, `CropUptake_Pasture`.
+G-TREND-N ends in 2017. The preprocessing used for the reported model holds each
+catchment's 2017 values constant for 2018, 2019, and 2020.
 
-The notebooks compute `total_N_surplus = N_surplus × area_ha` (kg yr⁻¹) as the single N source for SPARROW routing.
+The large raw model inputs are distributed separately; the compact figure-source
+tables are included in `data/publication/`.
 
-### 3. Spatial fold assignments (for notebook 03)
+## Validation preprocessing
 
-Five CSV files, one per fold (`CV_1_data.csv` … `CV_5_data.csv`).  Set `cv_fold_dir` in notebook 03 to point to the folder containing them.
+The two validation schemes intentionally use different scaler fitting domains:
 
-Each file must have a `waterid` column and a `valsites` column (1 = validation reach for that fold).
+- **Temporal validation:** every fold contains 16 training years and four held-out
+  years. The main, stream, and reservoir MinMax scalers are fitted only on the 16
+  training years, then applied unchanged to both training and validation years.
+- **Spatial validation:** the scalers are fitted on covariates for all HUC-12
+  reaches, including ungauged and held-out reaches. Routing requires normalized
+  covariates throughout the connected network. Validation-site load observations
+  remain excluded from model fitting.
 
-### 4. Temporal fold assignments (for notebook 04)
-
-Pre-defined in code — no additional files needed.
-
-The four held-out years per fold were drawn by random selection from the 20-year study period, stratified to spread held-out years across the full time range rather than grouping them consecutively.
+The temporal folds are:
 
 | Fold | Held-out years |
-|---|---|
+|---:|---|
 | 1 | 2001, 2006, 2013, 2014 |
 | 2 | 2003, 2008, 2012, 2018 |
 | 3 | 2004, 2010, 2011, 2016 |
 | 4 | 2002, 2015, 2019, 2020 |
 | 5 | 2005, 2007, 2009, 2017 |
 
-### Data availability
+Both validation notebooks use Adam with learning rate `1e-3`, weight decay
+`2e-3`, seed 42, 200 epochs, a 10-epoch linear warmup, and
+`StepLR(step_size=50, gamma=0.5)`. The completed temporal training-year-scaler
+run reached a five-fold mean validation log-MSE of 0.379796 at epoch 110.
 
-The input data are hosted on [Figshare – add DOI here].  Download and unzip to a local folder, then set `working_dir` accordingly.
+The manuscript figure artifacts were produced from the full-data model's epoch
+110 checkpoint (Adam learning rate `1e-3`, weight decay `1e-3`, seed 42).
 
----
+## Run order
 
-## Installation
+Create the environment and run the notebooks in order:
 
 ```bash
 conda env create -f environment.yml
 conda activate dpl-sparrow
+jupyter lab
 ```
 
-For GPU training (recommended), ensure your system has CUDA installed and that the PyTorch version in `environment.yml` matches your CUDA version.  See [pytorch.org/get-started](https://pytorch.org/get-started/locally/) for CUDA-specific install commands.
-
----
-
-## How to run
-
-Run the notebooks **in order**:
-
-```
-01 → 02 → 03 / 04 → 05 → 06
+```text
+01 → 02 → 03 and 04 → 05 → 06
 ```
 
-Each notebook writes its outputs to a sub-folder under `./outputs/`.  The first cell of every notebook contains a `data_dir` variable — set this to the root of your data folder before running.
+GPU execution is recommended for notebooks 02–04. Data preparation and analysis
+can run on CPU.
 
-| Notebook | Approximate runtime | GPU required? |
-|---|---|---|
-| 01 Data preparation | ~5 min | No |
-| 02 Full training (150 epochs) | ~2 h | Recommended |
-| 03 Spatial CV (5 × 150 epochs) | ~10 h | Recommended |
-| 04 Temporal CV (5 × 150 epochs) | ~10 h | Recommended |
-| 05 Scenario attribution | ~15 min | No |
-| 06 SHAP analysis | ~15 min | No |
+## Publication data
 
-Training can be accelerated by reducing `NUM_EPOCHS` for exploratory runs.
+The files in `data/publication/` contain the data underlying spatial maps,
+scenario comparisons, observed-versus-predicted plots, residual maps, and SHAP
+plots. `data/publication/DATA_DICTIONARY.md` documents every table.
 
----
+The generation script is included for provenance. On the original project
+filesystem it can be run with:
 
-## Model overview
-
-```
-Catchment attributes (9 features)         Stream attrs (slope, meanq)   Reservoir (meanTemp)
-         │                                         │                           │
-  ┌──────▼──────┐                          ┌───────▼──────┐           ┌───────▼──────┐
-  │ param_model │  hidden=32               │param_model_  │ hidden=8  │param_model_  │ hidden=8
-  │  (MLP, 9→32)│                          │strm (MLP,2→8)│           │res (MLP,1→8) │
-  └──────┬──────┘                          └──────┬───────┘           └──────┬───────┘
-         │  α (export), θ_D (delivery)            │  θ_S (stream loss)       │  θ_R (res. loss)
-         └────────────────────┬───────────────────┘───────────────────────────┘
-                              │  spatially varying parameters per reach
-                              ▼
-                    ┌──────────────────┐
-                    │  SPARROW routing │  physics-based, upstream → downstream
-                    └────────┬─────────┘
-                             │
-                  Predicted TN load at each reach
+```bash
+python scripts/generate_publication_data.py
 ```
 
-Three `ParamGenerator` MLPs are trained jointly with a single Adam optimizer:
-
-| Sub-network | Inputs | Hidden | Outputs used |
-|---|---|---|---|
-| `param_model` | 9 catchment attributes | 32 | α (N export), θ_D (delivery) |
-| `param_model_strm` | slope, meanq | 8 | θ_S = `coeffs[:, -2:-1]` |
-| `param_model_res` | meanTemp | 8 | θ_R = `coeffs[:, -1:]` |
-
-**Single N source:** `total_N_surplus` (TREND-N N surplus × catchment area).
-
-**Training loss:** MSE in log-space between predicted and observed annual TN loads at gauging stations.
-
----
+Set `DPL_SPARROW_DATA_ROOT` to override the raw-data root and
+`DPL_SPARROW_PUBLICATION_DATA` to override the output directory.
 
 ## Contact
 
-Questions contact: qz29@illinois.com, binpeng@illinois.edu, kaiyug@illinois.edu
+Questions: qz29@illinois.com, binpeng@illinois.edu, kaiyug@illinois.edu
