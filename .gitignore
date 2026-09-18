@@ -27,7 +27,6 @@ data/*
 !data/publication/
 !data/publication/*.csv
 !data/publication/*.md
-!data/publication/SHA256SUMS
 !results/
 !results/validation/
 !results/validation/*.csv

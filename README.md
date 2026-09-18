@@ -16,7 +16,6 @@ River Basin at HUC-12 resolution for 2001–2020.
 05_scenario_attribution.ipynb   early/late-period counterfactual scenarios
 06_shap_analysis.ipynb          SHAP analysis of learned parameters
 sparrow/                        model and routing utilities
-scripts/generate_publication_data.py
 data/publication/               CSV data underlying the manuscript figures
 results/validation/             completed validation summaries
 environment.yml
@@ -109,15 +108,8 @@ The files in `data/publication/` contain the data underlying spatial maps,
 scenario comparisons, observed-versus-predicted plots, residual maps, and SHAP
 plots. `data/publication/DATA_DICTIONARY.md` documents every table.
 
-The generation script is included for provenance. On the original project
-filesystem it can be run with:
-
-```bash
-python scripts/generate_publication_data.py
-```
-
-Set `DPL_SPARROW_DATA_ROOT` to override the raw-data root and
-`DPL_SPARROW_PUBLICATION_DATA` to override the output directory.
+The data-generation script is retained with the project files on Delta rather
+than distributed in this GitHub repository.
 
 ## Contact
 

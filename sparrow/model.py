@@ -106,7 +106,7 @@ class ParamGenerator(nn.Module):
 
     1. **Catchment model** (`param_model`)
        Input: landscape attributes (precipitation, soil, land use, conservation).
-       Outputs: N export rate (α) and delivery coefficients (θ_D).
+       Outputs: land-to-stream delivery efficiency (α) and delivery coefficients (θ_D).
 
     2. **Stream model** (`param_model_strm`)
        Input: stream-specific attributes (slope, mean discharge).

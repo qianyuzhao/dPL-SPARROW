@@ -1,0 +1,21 @@
+{
+  "validation_scheme": "temporal_5_fold",
+  "learning_rate": 0.001,
+  "weight_decay": 0.002,
+  "seed": 42,
+  "epochs": 200,
+  "scaler_fit_domain": "16 training years within each fold",
+  "held_out_information": "four validation years per fold",
+  "selected_checkpoint": {
+    "epoch": 110,
+    "mean_training_log_mse": 0.359013,
+    "sd_training_log_mse": 0.020267,
+    "mean_validation_log_mse": 0.379796,
+    "sd_validation_log_mse": 0.118696,
+    "mean_training_log_r2": 0.905324,
+    "sd_training_log_r2": 0.004950,
+    "mean_validation_log_r2": 0.899445,
+    "sd_validation_log_r2": 0.030128
+  },
+  "source": "completed temporal run with fold-specific training-year MinMax scaling"
+}

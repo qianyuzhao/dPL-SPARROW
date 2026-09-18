@@ -1,4 +1,4 @@
-HUC_12,Year,N_Export_Rate,Stream_Loss,Reservoir_Loss,Reservoir_Attenuation,Stream_Attenuation
+HUC_12,Year,Land_to_stream_delivery_efficiency,Stream_Loss,Reservoir_Loss,Reservoir_Attenuation,Stream_Attenuation
 70101010101,2001,0.027298626,0.09077059,0.68588144,0.0,0.37244716636576747
 70101010102,2001,0.020881265,0.09337863,0.68287736,0.0,0.33215037134822345
 70101010103,2001,0.020420168,0.09420939,0.68336236,0.0,0.4192051494005914

@@ -1,6 +1,5 @@
 {
   "validation_scheme": "spatial_5_fold",
-  "candidate_id": "lr1em3_wd2em3",
   "learning_rate": 0.001,
   "weight_decay": 0.002,
   "seed": 42,
